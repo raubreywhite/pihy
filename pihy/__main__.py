@@ -7,7 +7,8 @@ import sys
 from .x import joke
 from .AtlasI2C import AtlasI2C
 
-storage_path = "/var/www/raspberry_reactjs/logs/ph.json"
+storage_path_ph = "/var/www/raspberry_reactjs/logs/ph.json"
+storage_path_pump = "/var/www/raspberry_reactjs/logs/pump.json"
 run = True
 runPump = 0
 
@@ -22,8 +23,8 @@ pump.set_is_sensor(False)
 def PHLong():
   global runPump
   data = None
-  if os.path.exists(storage_path):
-    with open(storage_path,'r') as f:
+  if os.path.exists(storage_path_ph):
+    with open(storage_path_ph,'r') as f:
       try:
         data = json.load(f)
       except Exception as e:
@@ -38,12 +39,12 @@ def PHLong():
 
   if xVal > 6.0:
     runPump = runPump + 1
-  elif runPump and xVal < 5.75:
+  elif runPump and xVal < 5.9:
     runPump = 0
 
   data.append({'time': xTime, 'value': xVal})
   
-  with open(storage_path, 'w') as outfile:
+  with open(storage_path_ph, 'w') as outfile:
     json.dump(data, outfile)
 
 def PHShort():
@@ -52,10 +53,31 @@ def PHShort():
   print("%s: pH %s" % (xTime, xVal))
 
 def PumpLong():
+  data = None
   print("PUMP VALUE: %s" % runPump)
+  
   if runPump > 2:
     print("PUMP IT!!")
     print(pump.query("D,5"))
+    
+    if os.path.exists(storage_path_pump):
+      with open(storage_path_pump,'r') as f:
+        try:
+          data = json.load(f)
+        except Exception as e:
+          print("got %s on json.load()" % e)
+  
+    if data is None:
+      print('Create new dataset')
+      data = [ ]
+
+    xTime = time.strftime("%Y-%m-%d %H:%M:%S")
+    xVal = 5
+
+    data.append({'time': xTime, 'value': xVal})
+
+    with open(storage_path_pump, 'w') as outfile:
+      json.dump(data, outfile)
 
 def Goodbye():
   global run
